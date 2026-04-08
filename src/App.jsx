@@ -268,7 +268,7 @@ export default function App() {
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-brand" onClick={() => switchView('dashboard')}>
             <div className="sidebar-logo">VS</div>
-            <div><div className="sidebar-brand-name">VantageStudy</div><div className="sidebar-brand-sub">AI-Powered Learning</div></div>
+            <div><div className="sidebar-brand-name">VantageStudy</div><div className="sidebar-brand-sub">By Vantage Suites</div></div>
           </div>
           <div className="sidebar-xp">
             <div className="sidebar-xp-header">
