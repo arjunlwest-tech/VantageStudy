@@ -360,7 +360,7 @@ export default function App() {
                 {view === 'quests' && <QuestsView state={state} />}
                 {view === 'stats' && <StatsView state={state} />}
                 {view === 'upgrade' && <UpgradeView switchView={switchView} />}
-                {view === 'games' && <GamesView state={state} setState={setState} save={save} addXP={addXP} setIsGameActive={setIsGameActive} />}
+                {view === 'games' && <GamesView state={state} setState={setState} save={save} addXP={addXP} setIsGameActive={setIsGameActive} lowGraphics={lowGraphics} reduceMotion={reduceMotion} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -368,7 +368,7 @@ export default function App() {
       </div>
 
       {showPaste && <PasteModal state={state} setState={setState} save={save} onClose={() => setShowPaste(false)} addXP={addXP} updateStreak={updateStreak} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} theme={theme} setTheme={setTheme} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} visualState={visualState} setVisualState={setVisualState} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} theme={theme} setTheme={setTheme} reduceMotion={reduceMotion} setReduceMotion={setReduceMotion} lowGraphics={lowGraphics} setLowGraphics={setLowGraphics} visualState={visualState} setVisualState={setVisualState} />}
       
       {zenMode && <button className="zen-exit-btn" onClick={() => setZenMode(false)}>Exit Zen Mode</button>}
     </>
@@ -1369,7 +1369,7 @@ function PasteModal({ state, setState, save, onClose, addXP, updateStreak }) {
 /* ============================================
    SETTINGS MODAL (API Key & Visuals)
    ============================================ */
-function SettingsModal({ onClose, theme, setTheme, reduceMotion, setReduceMotion, visualState, setVisualState }) {
+function SettingsModal({ onClose, theme, setTheme, reduceMotion, setReduceMotion, lowGraphics, setLowGraphics, visualState, setVisualState }) {
   const [key, setKey] = useState(getStoredKey())
   const [saved, setSaved] = useState(false)
   const [tab, setTab] = useState('ai') // 'ai' or 'visual'
@@ -1559,7 +1559,7 @@ function UpgradeView({ switchView }) {
 /* ============================================
    GAMES ARCADE
    ============================================ */
-function GamesView({ state, setState, save, addXP, setIsGameActive }) {
+function GamesView({ state, setState, save, addXP, setIsGameActive, lowGraphics, reduceMotion }) {
   const [activeGame, setActiveGame] = useState(null)
   const [activeLevel, setActiveLevel] = useState(null)
   const [isLaunching, setIsLaunching] = useState(false)

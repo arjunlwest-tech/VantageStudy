@@ -63,18 +63,10 @@ export default function StellarStriker({ studySet, lowGraphics, reduceMotion, on
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   
-  const questions = useMemo(() => (studySet.quizQuestions || []).filter(q => q.type === 'mcq'), [studySet])
-  if (questions.length === 0) {
-    return (
-       <div style={{ padding: 40, textAlign: 'center', color: 'white' }}>
-          <h3>Insufficient Data</h3>
-          <p>This dimension requires MCQ questions in your study set.</p>
-          <button className="btn" onClick={() => onComplete(0)}>Return</button>
-       </div>
-    )
-  }
+  const questions = useMemo(() => (studySet?.quizQuestions || []).filter(q => q.type === 'mcq'), [studySet])
   
-  const [activeQ, setActiveQ] = useState(questions[0])
+  // Safe default for state initialization
+  const [activeQ, setActiveQ] = useState(() => questions.length > 0 ? questions[0] : null)
 
   const onExplode = (success) => {
     if (success) {
@@ -83,6 +75,16 @@ export default function StellarStriker({ studySet, lowGraphics, reduceMotion, on
     } else {
       setGameOver(true)
     }
+  }
+
+  if (questions.length === 0) {
+    return (
+       <div style={{ padding: 40, textAlign: 'center', color: 'white' }}>
+          <h3>Insufficient Data</h3>
+          <p>This dimension requires MCQ questions in your study set.</p>
+          <button className="btn" onClick={() => onComplete(0)}>Return</button>
+       </div>
+    )
   }
 
   if (gameOver) {

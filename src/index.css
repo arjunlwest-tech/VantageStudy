@@ -56,6 +56,8 @@
   --text-dim: #5e6e82;
 
   --font-base: 15px;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
   --line-height: 1.65;
 
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 28px; --r-full: 9999px;
@@ -119,7 +121,7 @@
 [data-fontsize="small"] { --font-base: 13.5px; }
 [data-fontsize="large"] { --font-base: 16.5px; }
 [data-dyslexic="true"] *, [data-dyslexic="true"] input, [data-dyslexic="true"] button, [data-dyslexic="true"] .fc-text { 
-  font-family: 'Comic Sans MS', 'OpenDyslexic', sans-serif !important; 
+  font-family: 'Lexend', sans-serif !important; 
   letter-spacing: 0.03em !important; 
 }
 
@@ -203,8 +205,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
+h1, h2, h3, h4, h5, h6, .sidebar-brand-name {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   font-size: var(--font-base, 15px);
   line-height: var(--line-height, 1.65);
   background: var(--bg-void);
