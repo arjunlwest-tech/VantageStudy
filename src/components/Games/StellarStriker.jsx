@@ -63,7 +63,17 @@ export default function StellarStriker({ studySet, lowGraphics, reduceMotion, on
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   
-  const questions = useMemo(() => studySet.quizQuestions.filter(q => q.type === 'mcq'), [studySet])
+  const questions = useMemo(() => (studySet.quizQuestions || []).filter(q => q.type === 'mcq'), [studySet])
+  if (questions.length === 0) {
+    return (
+       <div style={{ padding: 40, textAlign: 'center', color: 'white' }}>
+          <h3>Insufficient Data</h3>
+          <p>This dimension requires MCQ questions in your study set.</p>
+          <button className="btn" onClick={() => onComplete(0)}>Return</button>
+       </div>
+    )
+  }
+  
   const [activeQ, setActiveQ] = useState(questions[0])
 
   const onExplode = (success) => {
@@ -96,10 +106,10 @@ export default function StellarStriker({ studySet, lowGraphics, reduceMotion, on
         
         {activeQ && (
           <group>
-             <Text position={[0, 4, 0]} fontSize={0.5} color="white">{activeQ.question}</Text>
+             <Text position={[0, 4, 0]} fontSize={0.5} color="white" textAlign="center" maxWidth={10}>{activeQ.question}</Text>
              {activeQ.options.map((opt, i) => (
                <Asteroid 
-                 key={i + opt} 
+                 key={opt + i} 
                  position={[(i - 1.5) * 4, (i % 2) * 2 - 1, -20 - (i * 5)]} 
                  text={opt} 
                  isTarget={opt === activeQ.correct}

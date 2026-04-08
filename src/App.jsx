@@ -1562,10 +1562,18 @@ function UpgradeView({ switchView }) {
 function GamesView({ state, setState, save, addXP, setIsGameActive }) {
   const [activeGame, setActiveGame] = useState(null)
   const [activeLevel, setActiveLevel] = useState(null)
+  const [isLaunching, setIsLaunching] = useState(false)
   
   useEffect(() => {
     setIsGameActive(!!activeGame)
   }, [activeGame, setIsGameActive])
+
+  const handleLaunch = (lvl, arch) => {
+    setIsLaunching(true)
+    setActiveLevel(lvl)
+    setActiveGame(arch)
+    setTimeout(() => setIsLaunching(false), 500)
+  }
 
   const sets = state.studySets.length > 0 ? state.studySets.filter(s => s.id !== 'starter_set').concat(STARTER_SET) : [STARTER_SET]
   const [selectedSetId, setSelectedSetId] = useState(sets[0].id)
@@ -1605,12 +1613,16 @@ function GamesView({ state, setState, save, addXP, setIsGameActive }) {
           </div>
         </div>
         <Suspense fallback={<div className="game-loader" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#050816', color: 'white' }}><Spin>💠</Spin><div style={{ marginTop: 16, fontWeight: 700, letterSpacing: '2px' }}>INITIALIZING VANTAGE ENGINE...</div></div>}>
-          <GameEngine level={activeLevel} studySet={currentSet} lowGraphics={lowGraphics} reduceMotion={reduceMotion} onComplete={(score) => {
-            const xp = Math.round(score * activeLevel.multiplier)
-            addXP(xp)
-            setActiveGame(null)
-            setActiveLevel(null)
-          }} />
+          {isLaunching ? (
+            <div className="game-loader" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#050816', color: 'white' }}><Spin>💠</Spin><div style={{ marginTop: 16, fontWeight: 700, letterSpacing: '2px' }}>CALIBRATING NEURAL LINK...</div></div>
+          ) : (
+            <GameEngine level={activeLevel} studySet={currentSet} lowGraphics={lowGraphics} reduceMotion={reduceMotion} onComplete={(score) => {
+              const xp = Math.round(score * activeLevel.multiplier)
+              addXP(xp)
+              setActiveGame(null)
+              setActiveLevel(null)
+            }} />
+          )}
         </Suspense>
       </div>
     )
@@ -1628,7 +1640,7 @@ function GamesView({ state, setState, save, addXP, setIsGameActive }) {
              <select className="sets-search" style={{ border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.05)', padding: '10px 20px', borderRadius: '40px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} value={selectedSetId} onChange={e => setSelectedSetId(e.target.value)}>
                 {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
              </select>
-             <button className="btn primary" style={{ padding: '12px 32px', borderRadius: '40px', fontWeight: 800, boxShadow: 'var(--glow-accent)' }} onClick={() => { setActiveLevel(LEVELS[0]); setActiveGame('runner') }}>LAUNCH MISSION 01</button>
+             <button className="btn primary" style={{ padding: '12px 32px', borderRadius: '40px', fontWeight: 800, boxShadow: 'var(--glow-accent)' }} onClick={() => handleLaunch(LEVELS[0], 'runner')}>LAUNCH MISSION 01</button>
           </div>
         </div>
       </motion.div>
@@ -1637,7 +1649,7 @@ function GamesView({ state, setState, save, addXP, setIsGameActive }) {
         <h3 style={{ margin: '32px 0 20px', fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-dim)' }}>Select Study Dimension</h3>
         <div className="games-level-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
           {LEVELS.map((lvl, i) => (
-            <motion.div key={lvl.id} className="glass-card level-card" style={{ padding: 24, cursor: 'pointer', textAlign: 'center', transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)', border: '1px solid rgba(255,255,255,0.05)' }} whileHover={{ scale: 1.05, borderColor: lvl.color, background: `${lvl.color}05` }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} onClick={() => { setActiveLevel(lvl); setActiveGame(lvl.archetypeId) }}>
+            <motion.div key={lvl.id} className="glass-card level-card" style={{ padding: 24, cursor: 'pointer', textAlign: 'center', transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)', border: '1px solid rgba(255,255,255,0.05)' }} whileHover={{ scale: 1.05, borderColor: lvl.color, background: `${lvl.color}05` }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} onClick={() => handleLaunch(lvl, lvl.archetypeId)}>
                <div className="level-icon" style={{ width: 64, height: 64, margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', borderRadius: '20px', background: `linear-gradient(135deg, ${lvl.color}33, transparent)`, border: `1px solid ${lvl.color}44`, boxShadow: `0 8px 20px ${lvl.color}11` }}>{lvl.icon}</div>
                <div className="level-name" style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 6, color: 'var(--text-primary)' }}>{lvl.name}</div>
                <div className="level-diff" style={{ fontSize: '0.75rem', opacity: 0.6 }}>{'⭐'.repeat(lvl.difficulty)}</div>
