@@ -30,45 +30,55 @@ export async function generateWithAI(text) {
   if (!genAI) return generateLocally(text);
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash',
+      systemInstruction: "You are an expert Harvard-level instructional designer and curriculum developer. Your goal is to deeply analyze provided study materials and extract highly rigorous, conceptually sound questions. Do not test trivial formatting. Do not hallucinate. All questions must rely entirely on the provided text. Distractors in MCQs must be highly plausible. Ensure rigorous academic quality.",
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
+      }
+    });
 
-    const prompt = `You are an expert educational AI. Analyze the following study material and generate a comprehensive study set.
+    // Smart chunking: Try to cut at the last period instead of mid-word if very long
+    let safeText = text.length > 25000 ? text.substring(0, 25000) : text;
+    if (text.length > 25000) {
+      const lastPeriod = safeText.lastIndexOf('.');
+      if (lastPeriod > 20000) safeText = safeText.substring(0, lastPeriod + 1);
+    }
 
-Return ONLY valid JSON with this exact structure:
+    const prompt = `Perform a comprehensive cognitive analysis of the following study material. Extract the core scientific, technical, historical, or conceptual knowledge.
+
+Return ONLY a JSON dictionary matching this exact schema:
 {
   "flashcards": [
-    {"front": "question text", "back": "answer text"}
+    {"front": "A specific, unambiguous question testing a core concept", "back": "The precise, factual answer"}
   ],
   "quizQuestions": [
-    {"type": "mcq", "question": "question text", "options": ["A","B","C","D"], "correct": "the correct option text"},
-    {"type": "truefalse", "question": "statement", "options": ["True","False"], "correct": "True or False"}
+    {"type": "mcq", "question": "Clear conceptual question", "options": ["Valid A", "Plausible B", "Plausible C", "Plausible D"], "correct": "The exact string of the correct option"},
+    {"type": "truefalse", "question": "A factual statement that is definitively true or false based exclusively on the text", "options": ["True","False"], "correct": "True or False"}
   ],
   "lessons": [
-    {"title": "lesson title", "content": "detailed lesson content explaining the concept clearly", "keyTerms": ["term1","term2"]}
+    {"title": "Lesson Section Title", "content": "A detailed, academically structured breakdown of the concepts", "keyTerms": ["term1", "term2"]}
   ]
 }
 
 Rules:
-- Generate 15-25 flashcards covering key concepts
-- Generate 12-18 quiz questions (mix of MCQ and True/False)
-- Generate 5-8 detailed lessons breaking down the material like Khan Academy
-- Make flashcard questions specific and testable
-- Quiz options should be plausible (no obvious wrong answers)
-- Lessons should be educational and well-structured with clear explanations
-- All content must come from the provided material
+1. ONLY generate questions that are explicitly supported by the text.
+2. Generate 15 to 25 flashcards targeting high-yield concepts.
+3. Generate 12 to 18 quiz questions. Ensure MCQ distractors are plausible and test genuine understanding.
+4. Generate 5 to 8 lesson modules logically summarizing the text.
+5. Do NOT test metadata (e.g. "What does paragraph 2 say?", "Who is the author?"). Test the actual subject matter.
+6. Return purely the JSON dictionary.
 
 STUDY MATERIAL:
-${text.substring(0, 15000)}`;
+---
+${safeText}
+---`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let responseText = response.text();
-
-    // Extract JSON from markdown code blocks if present
-    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) responseText = jsonMatch[1];
-
+    const responseText = result.response.text();
     const data = JSON.parse(responseText);
+
     return {
       flashcards: (data.flashcards || []).map(fc => ({
         ...fc,
