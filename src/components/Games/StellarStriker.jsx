@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Text, PerspectiveCamera, Stars, Float } from '@react-three/drei'
+import { Text, PerspectiveCamera, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 
 function Asteroid({ position, text, isTarget, onExplode }) {
@@ -59,7 +59,7 @@ function Ship() {
   )
 }
 
-export default function StellarStriker({ studySet, onComplete }) {
+export default function StellarStriker({ studySet, lowGraphics, reduceMotion, onComplete }) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   
@@ -87,10 +87,11 @@ export default function StellarStriker({ studySet, onComplete }) {
 
   return (
     <div style={{ height: '100%', background: '#000' }}>
-      <Canvas>
+      <Canvas dpr={lowGraphics ? 1 : [1, 1.25]}>
         <PerspectiveCamera makeDefault position={[0, 0, 10]} />
-        <Stars count={2000} />
-        <pointLight position={[10, 10, 10]} intensity={2} />
+        {!lowGraphics && <Stars count={2000} />}
+        <ambientLight intensity={lowGraphics ? 1.0 : 0.5} />
+        {!lowGraphics && <pointLight position={[10, 10, 10]} intensity={2} />}
         <Ship />
         
         {activeQ && (

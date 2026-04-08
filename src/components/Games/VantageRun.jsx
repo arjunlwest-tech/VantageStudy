@@ -57,7 +57,7 @@ function Track({ speed }) {
   )
 }
 
-export default function VantageRun({ studySet, onComplete }) {
+export default function VantageRun({ studySet, lowGraphics, reduceMotion, onComplete }) {
   const [lane, setLane] = useState(0) // -1, 0, 1
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
@@ -104,12 +104,12 @@ export default function VantageRun({ studySet, onComplete }) {
 
   return (
     <div style={{ width: '100%', height: '100%', cursor: 'none' }}>
-      <Canvas shadows>
+      <Canvas shadows={!lowGraphics} dpr={lowGraphics ? 1 : [1, 1.5]}>
         <PerspectiveCamera makeDefault position={[0, 2, 8]} fov={60} />
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <Environment preset="city" />
+        <ambientLight intensity={lowGraphics ? 1.0 : 0.5} />
+        {!lowGraphics && <pointLight position={[10, 10, 10]} intensity={1} />}
+        {!lowGraphics && <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />}
+        {!lowGraphics && <Environment preset="city" />}
 
         <Player position={[0, 0, 0]} targetLane={lane} />
         <Track speed={speed} />

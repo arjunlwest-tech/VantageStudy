@@ -116,6 +116,9 @@ export default function App() {
   
   const [theme, setTheme] = useState(localStorage.getItem('vs_theme') || 'dark')
   const [reduceMotion, setReduceMotion] = useState(localStorage.getItem('vs_motion') === 'true')
+  const [lowGraphics, setLowGraphics] = useState(localStorage.getItem('vs_low_gfx') === 'true')
+  const [isGameActive, setIsGameActive] = useState(false)
+
   const [visualState, setVisualState] = useState(() => {
     try { return JSON.parse(localStorage.getItem('vs_visuals')) || { fontSize: 'normal', dyslexic: false, color: 'indigo' } }
     catch { return { fontSize: 'normal', dyslexic: false, color: 'indigo' } }
@@ -133,6 +136,10 @@ export default function App() {
     document.documentElement.setAttribute('data-reduce-motion', reduceMotion)
     localStorage.setItem('vs_motion', reduceMotion)
   }, [reduceMotion])
+
+  useEffect(() => {
+    localStorage.setItem('vs_low_gfx', lowGraphics)
+  }, [lowGraphics])
 
   useEffect(() => {
     localStorage.setItem('vs_visuals', JSON.stringify(visualState))
@@ -272,7 +279,7 @@ export default function App() {
 
   return (
     <>
-      {!reduceMotion && <Suspense fallback={null}><Scene3D /></Suspense>}
+      {!reduceMotion && !isGameActive && <Suspense fallback={null}><Scene3D /></Suspense>}
 
       {showLevelUp && (
         <div className="modal-overlay" onClick={() => setShowLevelUp(false)}>
@@ -353,7 +360,7 @@ export default function App() {
                 {view === 'quests' && <QuestsView state={state} />}
                 {view === 'stats' && <StatsView state={state} />}
                 {view === 'upgrade' && <UpgradeView switchView={switchView} />}
-                {view === 'games' && <GamesView state={state} setState={setState} save={save} addXP={addXP} />}
+                {view === 'games' && <GamesView state={state} setState={setState} save={save} addXP={addXP} setIsGameActive={setIsGameActive} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -1451,6 +1458,13 @@ function SettingsModal({ onClose, theme, setTheme, reduceMotion, setReduceMotion
                   </div>
                   <button className={`vsettings-toggle ${reduceMotion ? 'on' : ''}`} onClick={() => setReduceMotion(!reduceMotion)} />
                 </div>
+                <div className="vsettings-row">
+                  <div>
+                    <div className="vsettings-label">Low Graphics Mode</div>
+                    <div className="vsettings-desc">Disable secondary lighting for better performance.</div>
+                  </div>
+                  <button className={`vsettings-toggle ${lowGraphics ? 'on' : ''}`} onClick={() => setLowGraphics(!lowGraphics)} />
+                </div>
               </div>
             </motion.div>
           )}
@@ -1545,10 +1559,14 @@ function UpgradeView({ switchView }) {
 /* ============================================
    GAMES ARCADE
    ============================================ */
-function GamesView({ state, setState, save, addXP }) {
+function GamesView({ state, setState, save, addXP, setIsGameActive }) {
   const [activeGame, setActiveGame] = useState(null)
   const [activeLevel, setActiveLevel] = useState(null)
   
+  useEffect(() => {
+    setIsGameActive(!!activeGame)
+  }, [activeGame, setIsGameActive])
+
   const sets = state.studySets.length > 0 ? state.studySets.filter(s => s.id !== 'starter_set').concat(STARTER_SET) : [STARTER_SET]
   const [selectedSetId, setSelectedSetId] = useState(sets[0].id)
   const currentSet = sets.find(s => s.id === selectedSetId) || sets[0]
@@ -1587,7 +1605,7 @@ function GamesView({ state, setState, save, addXP }) {
           </div>
         </div>
         <Suspense fallback={<div className="game-loader" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#050816', color: 'white' }}><Spin>💠</Spin><div style={{ marginTop: 16, fontWeight: 700, letterSpacing: '2px' }}>INITIALIZING VANTAGE ENGINE...</div></div>}>
-          <GameEngine level={activeLevel} studySet={currentSet} onComplete={(score) => {
+          <GameEngine level={activeLevel} studySet={currentSet} lowGraphics={lowGraphics} reduceMotion={reduceMotion} onComplete={(score) => {
             const xp = Math.round(score * activeLevel.multiplier)
             addXP(xp)
             setActiveGame(null)
@@ -1631,7 +1649,20 @@ function GamesView({ state, setState, save, addXP }) {
   )
 }
 
-function GameEngine({ level, studySet, onComplete }) {
-  const GameComponent = lazy(() => import(`./components/Games/${level.archetypeId === 'runner' ? 'VantageRun' : level.archetypeId === 'shooter' ? 'StellarStriker' : level.archetypeId === 'match' ? 'GravityMatch' : 'VoidClimb'}`))
-  return <GameComponent level={level} studySet={studySet} onComplete={onComplete} />
+/* ============================================
+   GAME ENGINE DEFINITIONS (LAZY)
+   ============================================ */
+const VantageRun = lazy(() => import('./components/Games/VantageRun'))
+const StellarStriker = lazy(() => import('./components/Games/StellarStriker'))
+const GravityMatch = lazy(() => import('./components/Games/GravityMatch'))
+const VoidClimb = lazy(() => import('./components/Games/VoidClimb'))
+
+function GameEngine({ level, studySet, lowGraphics, reduceMotion, onComplete }) {
+  const arch = level.archetypeId
+  const props = { studySet, onComplete, lowGraphics, reduceMotion, level }
+  if (arch === 'runner') return <VantageRun {...props} />
+  if (arch === 'shooter') return <StellarStriker {...props} />
+  if (arch === 'match') return <GravityMatch {...props} />
+  if (arch === 'tower') return <VoidClimb {...props} />
+  return <div style={{ color: 'white' }}>Unknown Game Dimension</div>
 }

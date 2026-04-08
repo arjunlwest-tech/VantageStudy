@@ -36,7 +36,7 @@ function FloatingTile({ text, id, isDefinition, onSelect, activeId, matchedIds }
   )
 }
 
-export default function GravityMatch({ studySet, onComplete }) {
+export default function GravityMatch({ studySet, lowGraphics, reduceMotion, onComplete }) {
   const [score, setScore] = useState(0)
   const [activeTerm, setActiveTerm] = useState(null)
   const [activeDef, setActiveDef] = useState(null)
@@ -73,9 +73,9 @@ export default function GravityMatch({ studySet, onComplete }) {
 
   return (
     <div style={{ height: '100%', background: 'radial-gradient(circle at center, #1e293b, #050816)' }}>
-      <Canvas camera={{ position: [0, 0, 10] }}>
-        <ambientLight intensity={1} />
-        <pointLight position={[10, 10, 10]} />
+      <Canvas camera={{ position: [0, 0, 10] }} dpr={lowGraphics ? 1 : [1, 1.25]}>
+        <ambientLight intensity={lowGraphics ? 1.2 : 1} />
+        {!lowGraphics && <pointLight position={[10, 10, 10]} />}
         {tiles.map((t, i) => (
           <group key={t.id + (t.isDef ? 'd' : 't')} position={t.pos}>
             <FloatingTile 

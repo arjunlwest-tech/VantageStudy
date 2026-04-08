@@ -14,7 +14,11 @@ function Pillar({ position, text, isCorrect, onLeap }) {
       </mesh>
       <mesh position={[0, -5, 0]}>
         <boxGeometry args={[1.8, 10, 1.8]} />
-        <MeshTransmissionMaterial alphaHash background={new THREE.Color('#050816')} chromaticAberration={0.02} distortion={0} distortionScale={0} temporalDistortion={0} transmission={1} />
+        {lowGraphics ? (
+           <meshStandardMaterial color="#050816" transparent opacity={0.8} />
+        ) : (
+           <MeshTransmissionMaterial alphaHash background={new THREE.Color('#050816')} chromaticAberration={0.02} distortion={0} distortionScale={0} temporalDistortion={0} transmission={1} />
+        )}
       </mesh>
       <Text position={[0, 0.6, 0]} fontSize={0.25} color="white" rotation={[-Math.PI / 4, 0, 0]} maxWidth={1.8}>
         {text}
@@ -23,7 +27,7 @@ function Pillar({ position, text, isCorrect, onLeap }) {
   )
 }
 
-export default function VoidClimb({ studySet, onComplete }) {
+export default function VoidClimb({ studySet, lowGraphics, reduceMotion, onComplete }) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const questions = useMemo(() => studySet.quizQuestions.filter(q => q.type === 'mcq'), [studySet])
@@ -55,10 +59,10 @@ export default function VoidClimb({ studySet, onComplete }) {
 
   return (
     <div style={{ height: '100%', background: '#050816' }}>
-      <Canvas camera={{ position: [0, 8, 10], rotation: [-Math.PI / 6, 0, 0] }}>
-        <Stars />
-        <ambientLight intensity={0.5} />
-        <pointLight position={[0, 10, 0]} intensity={2} />
+      <Canvas camera={{ position: [0, 8, 10], rotation: [-Math.PI / 6, 0, 0] }} dpr={lowGraphics ? 1 : [1, 1.25]}>
+        {!lowGraphics && <Stars />}
+        <ambientLight intensity={lowGraphics ? 1.0 : 0.5} />
+        <pointLight position={[0, 10, 0]} intensity={lowGraphics ? 1 : 2} />
         
         <group position={[0, 0, -5]}>
           <Text position={[0, 4, -2]} fontSize={0.6} color="white" maxWidth={10}>{activeQ.question}</Text>
