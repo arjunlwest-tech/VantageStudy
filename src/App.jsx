@@ -6,8 +6,20 @@ import { generateWithAI, setApiKey, getStoredKey, hasAI } from './lib/ai'
 
 const Scene3D = lazy(() => import('./components/Scene3D'))
 
-const genId = () => crypto.randomUUID()
-const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+/* ============================================
+   UI UTILS & HELPERS
+   ============================================ */
+const genId = () => Math.random().toString(36).substring(2, 9)
+const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+
+const speak = (text) => {
+  if (!window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const msg = new SpeechSynthesisUtterance(text)
+  msg.rate = 0.95
+  msg.pitch = 1
+  window.speechSynthesis.speak(msg)
+}
 
 /* ============================================
    ANIMATED ICON COMPONENTS
@@ -549,6 +561,19 @@ function FlashcardPlayer({ set, state, setState, save, addXP, onBack }) {
     setFlipped(false); setTimeout(() => setIndex(i => i + 1), 250)
   }
 
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.code === 'Space' && !flipped) { e.preventDefault(); setFlipped(true) }
+      else if (flipped) {
+        if (e.key === '1') rate(1)
+        else if (e.key === '2') rate(3)
+        else if (e.key === '3') rate(5)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [flipped, index])
+
   if (!card) return (
     <motion.div className="glass-card results-card" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
       <div className="results-icon">🎉</div><div className="results-score">Done!</div>
@@ -566,13 +591,20 @@ function FlashcardPlayer({ set, state, setState, save, addXP, onBack }) {
       <div className="fc-container" onClick={() => !flipped && setFlipped(true)}>
         <motion.div className={`flashcard ${flipped ? 'flipped' : ''}`} key={index} initial={{ opacity: 0, rotateY: -15 }} animate={{ opacity: 1, rotateY: 0 }} transition={{ duration: 0.4 }}>
           <div className="fc-face fc-front">
-            <div className="fc-label"><Lightning size="0.8em" /> Question</div>
+            <div className="fc-label" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <span><Lightning size="0.8em" /> Question</span>
+              <button className="tts-btn" onClick={(e) => { e.stopPropagation(); speak(card.front) }} title="Read Aloud">🔊</button>
+            </div>
             <div className="fc-text">{card.front}</div>
-            <div className="fc-hint">Click to reveal ✨</div>
+            <div className="fc-hint">Click or Space to reveal ✨</div>
           </div>
           <div className="fc-face fc-back">
-            <div className="fc-label"><GlowEmerald>✓</GlowEmerald> Answer</div>
+            <div className="fc-label" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <span><GlowEmerald>✓</GlowEmerald> Answer</span>
+              <button className="tts-btn" onClick={(e) => { e.stopPropagation(); speak(card.back) }} title="Read Aloud">🔊</button>
+            </div>
             <div className="fc-text">{card.back}</div>
+            <div className="fc-hint" style={{ opacity: 0.6, fontSize: '0.7rem' }}>Press 1, 2, or 3 to rate</div>
           </div>
         </motion.div>
       </div>
@@ -1251,10 +1283,28 @@ function PasteModal({ state, setState, save, onClose, addXP, updateStreak }) {
   const [loading, setLoading] = useState(false)
 
   const submit = async () => {
-    if (text.trim().length < 30) return alert('Please paste at least a few sentences of study material.')
+    if (text.trim().length < 5) return alert('Please paste some study material.')
     setLoading(true)
     try {
-      const generated = await generateWithAI(text)
+      let generated;
+      const lines = text.trim().split('\n').filter(l => l.includes('\t') || l.includes(' - ') || l.includes(': '))
+      
+      // If we detect a pattern for at least 3 lines or 50% of lines, treat as direct import
+      if (lines.length >= 3 || (lines.length > 0 && lines.length >= text.trim().split('\n').length * 0.5)) {
+        const flashcards = lines.map(line => {
+          let [front, ...rest] = line.split(/\t| - |: /)
+          return {
+            id: genId(),
+            front: front.trim(),
+            back: rest.join(' ').trim(),
+            difficulty: 0, nextReview: Date.now(), interval: 1, easeFactor: 2.5, status: 'new'
+          }
+        })
+        generated = { flashcards, quizQuestions: [], lessons: [], aiGenerated: false }
+      } else {
+        generated = await generateWithAI(text)
+      }
+
       const studySet = {
         id: genId(), name: name.trim() || 'My Study Set',
         description: text.substring(0, 150).trim() + '...',
@@ -1264,7 +1314,7 @@ function PasteModal({ state, setState, save, onClose, addXP, updateStreak }) {
         createdAt: new Date().toISOString(), progress: 0,
       }
       setState(prev => { const n = { ...prev, studySets: [studySet, ...prev.studySets] }; saveState(n); return n })
-      updateStreak(); addXP(50); onClose()
+      updateStreak(); addXP(generated.aiGenerated ? 50 : 25); onClose()
     } catch (e) { console.error(e); alert('Error generating content. Please try again.') }
     setLoading(false)
   }
