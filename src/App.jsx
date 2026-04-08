@@ -45,6 +45,7 @@ const VIEW_TITLES = {
   quests: <><Lightning size="1.1em" /> Daily Quests</>,
   stats: <><GlowEmerald>📈</GlowEmerald> Statistics</>,
   settings: <><Spin>⚙️</Spin> Settings</>,
+  games: <><GlowAccent>🎮</GlowAccent> Vantage Arcade</>,
 }
 
 const ACHIEVEMENTS = [
@@ -76,6 +77,27 @@ const QUESTS = [
   { id: 'q7', title: 'Streak Builder', desc: 'Maintain a 2-day streak.', icon: '🔥', xp: 35, check: (s) => s.streak >= 2 },
   { id: 'q8', title: 'Master Learner', desc: 'Reach Level 2.', icon: '⭐', xp: 100, check: (s) => getLevel(s.totalXP) >= 2 },
 ]
+
+const STARTER_SET = {
+  id: 'starter_set',
+  name: 'Vantage Academy Starter',
+  description: 'General knowledge and science to get you started in the Arcade!',
+  aiGenerated: false,
+  flashcards: [
+    { id: 's1', front: 'What is the largest planet in our solar system?', back: 'Jupiter' },
+    { id: 's2', front: 'Which element has the atomic symbol "Au"?', back: 'Gold' },
+    { id: 's3', front: 'What is the speed of light approx?', back: '300,000 km/s' },
+    { id: 's4', front: 'Who painted the Mona Lisa?', back: 'Leonardo da Vinci' },
+    { id: 's5', front: 'What is the powerhouse of the cell?', back: 'Mitochondria' },
+  ],
+  quizQuestions: [
+    { id: 'sq1', type: 'mcq', question: 'What is the hardest natural substance?', options: ['Diamond', 'Gold', 'Iron', 'Quartz'], correct: 'Diamond' },
+    { id: 'sq2', type: 'mcq', question: 'Which planet is known as the Red Planet?', options: ['Mars', 'Venus', 'Saturn', 'Mercury'], correct: 'Mars' },
+    { id: 'sq3', type: 'mcq', question: 'What is the boiling point of water?', options: ['100°C', '90°C', '120°C', '80°C'], correct: '100°C' },
+  ],
+  lessons: [],
+  createdAt: new Date().toISOString()
+}
 
 /* ============================================
    MAIN APP
@@ -241,6 +263,7 @@ export default function App() {
     ]},
     { label: 'Progress', items: [
       { view: 'achievements', icon: <Float>🏆</Float>, text: 'Achievements' },
+      { view: 'games', icon: <GlowAccent>🎮</GlowAccent>, text: 'Games Arcade' },
       { view: 'quests', icon: <Lightning />, text: 'Daily Quests' },
       { view: 'stats', icon: <GlowEmerald>📈</GlowEmerald>, text: 'Statistics' },
       { view: 'upgrade', icon: <Float>💎</Float>, text: 'Vantage Pro' },
@@ -330,6 +353,7 @@ export default function App() {
                 {view === 'quests' && <QuestsView state={state} />}
                 {view === 'stats' && <StatsView state={state} />}
                 {view === 'upgrade' && <UpgradeView switchView={switchView} />}
+                {view === 'games' && <GamesView state={state} setState={setState} save={save} addXP={addXP} />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -1516,4 +1540,98 @@ function UpgradeView({ switchView }) {
       </motion.div>
     </div>
   )
+}
+
+/* ============================================
+   GAMES ARCADE
+   ============================================ */
+function GamesView({ state, setState, save, addXP }) {
+  const [activeGame, setActiveGame] = useState(null)
+  const [activeLevel, setActiveLevel] = useState(null)
+  
+  const sets = state.studySets.length > 0 ? state.studySets.filter(s => s.id !== 'starter_set').concat(STARTER_SET) : [STARTER_SET]
+  const [selectedSetId, setSelectedSetId] = useState(sets[0].id)
+  const currentSet = sets.find(s => s.id === selectedSetId) || sets[0]
+
+  const ARCHETYPES = [
+    { id: 'runner', name: 'Vantage Run', icon: '🏃', color: 'var(--accent)', desc: 'Infinite 3D runner. Dodge obstacles and hit answer portals.' },
+    { id: 'shooter', name: 'Stellar Striker', icon: '🚀', color: 'var(--emerald)', desc: 'Space combat. Blast asteroids with the correct answer.' },
+    { id: 'match', name: 'Gravity Match', icon: '🧩', color: 'var(--rose)', desc: '3D Physics match. Drop blocks into the right containers.' },
+    { id: 'tower', name: 'Void Climb', icon: '🏙️', color: 'var(--amber)', desc: '3D Platformer. Jump across answer pillars in the void.' },
+  ]
+
+  // Create 20 unique levels (5 per archetype)
+  const LEVELS = Array.from({ length: 20 }, (_, i) => {
+    const archIdx = Math.floor(i / 5)
+    const subIdx = (i % 5) + 1
+    const arch = ARCHETYPES[archIdx]
+    return {
+      id: `game_${i}`,
+      archetypeId: arch.id,
+      name: `${arch.name} — Phase ${subIdx}`,
+      difficulty: subIdx,
+      icon: arch.icon,
+      color: arch.color,
+      multiplier: 1 + (subIdx * 0.2)
+    }
+  })
+
+  if (activeGame) {
+    return (
+      <div className="game-wrapper" style={{ height: 'calc(100vh - 120px)', position: 'relative', borderRadius: 'var(--r-md)', overflow: 'hidden', background: '#050816' }}>
+        <div className="game-overlay-header" style={{ position: 'absolute', top: 20, left: 20, right: 20, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button className="btn" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={() => { setActiveGame(null); setActiveLevel(null) }}>✕ Quit Dimension</button>
+          <div className="active-level-info" style={{ textAlign: 'right', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', padding: '8px 16px', borderRadius: '40px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <span style={{ color: activeLevel.color, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.8rem' }}>{activeLevel.name}</span>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', fontWeight: 600 }}>SYNCED: {currentSet.name}</div>
+          </div>
+        </div>
+        <Suspense fallback={<div className="game-loader" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#050816', color: 'white' }}><Spin>💠</Spin><div style={{ marginTop: 16, fontWeight: 700, letterSpacing: '2px' }}>INITIALIZING VANTAGE ENGINE...</div></div>}>
+          <GameEngine level={activeLevel} studySet={currentSet} onComplete={(score) => {
+            const xp = Math.round(score * activeLevel.multiplier)
+            addXP(xp)
+            setActiveGame(null)
+            setActiveLevel(null)
+          }} />
+        </Suspense>
+      </div>
+    )
+  }
+
+  return (
+    <div className="games-hub">
+      <motion.div className="glass-card games-hero" style={{ padding: 40, marginBottom: 24, position: 'relative', overflow: 'hidden' }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 20% 30%, rgba(99,102,241,0.15), transparent)', zIndex: 0 }} />
+        <div className="games-hero-content" style={{ position: 'relative', zIndex: 1 }}>
+          <div className="ai-badge" style={{ marginBottom: 16, background: 'var(--accent)', color: 'white' }}>FEATURED DIMENSION</div>
+          <h2 style={{ fontSize: '2.8rem', fontWeight: 900, marginBottom: 12, letterSpacing: '-1px' }}><Float>🏃</Float> Vantage Run</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24, maxWidth: 500, fontSize: '1.1rem', lineHeight: 1.6 }}>The ultimate 3D knowledge runner. Dodge, slide, and blast through answer portals synchronized with your study sets.</p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+             <select className="sets-search" style={{ border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.05)', padding: '10px 20px', borderRadius: '40px', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }} value={selectedSetId} onChange={e => setSelectedSetId(e.target.value)}>
+                {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+             </select>
+             <button className="btn primary" style={{ padding: '12px 32px', borderRadius: '40px', fontWeight: 800, boxShadow: 'var(--glow-accent)' }} onClick={() => { setActiveLevel(LEVELS[0]); setActiveGame('runner') }}>LAUNCH MISSION 01</button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="games-scroll-area">
+        <h3 style={{ margin: '32px 0 20px', fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-dim)' }}>Select Study Dimension</h3>
+        <div className="games-level-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
+          {LEVELS.map((lvl, i) => (
+            <motion.div key={lvl.id} className="glass-card level-card" style={{ padding: 24, cursor: 'pointer', textAlign: 'center', transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)', border: '1px solid rgba(255,255,255,0.05)' }} whileHover={{ scale: 1.05, borderColor: lvl.color, background: `${lvl.color}05` }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} onClick={() => { setActiveLevel(lvl); setActiveGame(lvl.archetypeId) }}>
+               <div className="level-icon" style={{ width: 64, height: 64, margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', borderRadius: '20px', background: `linear-gradient(135deg, ${lvl.color}33, transparent)`, border: `1px solid ${lvl.color}44`, boxShadow: `0 8px 20px ${lvl.color}11` }}>{lvl.icon}</div>
+               <div className="level-name" style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 6, color: 'var(--text-primary)' }}>{lvl.name}</div>
+               <div className="level-diff" style={{ fontSize: '0.75rem', opacity: 0.6 }}>{'⭐'.repeat(lvl.difficulty)}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GameEngine({ level, studySet, onComplete }) {
+  const GameComponent = lazy(() => import(`./components/Games/${level.archetypeId === 'runner' ? 'VantageRun' : level.archetypeId === 'shooter' ? 'StellarStriker' : level.archetypeId === 'match' ? 'GravityMatch' : 'VoidClimb'}`))
+  return <GameComponent level={level} studySet={studySet} onComplete={onComplete} />
 }

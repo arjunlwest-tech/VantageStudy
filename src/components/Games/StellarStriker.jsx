@@ -1,0 +1,114 @@
+import { useState, useRef, useMemo, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Text, PerspectiveCamera, Stars, Float } from '@react-three/drei'
+import * as THREE from 'three'
+
+function Asteroid({ position, text, isTarget, onExplode }) {
+  const ref = useRef()
+  const [exploded, setExploded] = useState(false)
+  
+  useFrame((state, delta) => {
+    if (ref.current && !exploded) {
+      ref.current.rotation.x += delta * 0.5
+      ref.current.rotation.y += delta * 0.8
+      ref.current.position.z += delta * 4
+      
+      if (ref.current.position.z > 5) {
+        // Recycle or handle missed
+      }
+    }
+  })
+
+  const shoot = () => {
+    setExploded(true)
+    onExplode(isTarget)
+  }
+
+  if (exploded) return null
+
+  return (
+    <group ref={ref} position={position} onClick={shoot}>
+      <mesh>
+        <dodecahedronGeometry args={[1.2, 0]} />
+        <meshStandardMaterial color="#334155" roughness={1} />
+      </mesh>
+      <Text position={[0, 0, 1.3]} fontSize={0.3} color="white" maxWidth={2}>
+        {text}
+      </Text>
+    </group>
+  )
+}
+
+function Ship() {
+  const ref = useRef()
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.position.x = state.pointer.x * 5
+      ref.current.position.y = state.pointer.y * 3
+      ref.current.rotation.z = -state.pointer.x * 0.5
+    }
+  })
+
+  return (
+    <group ref={ref}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.5, 1.5, 4]} />
+        <meshStandardMaterial color="#6366f1" emissive="#6366f1" emissiveIntensity={2} />
+      </mesh>
+    </group>
+  )
+}
+
+export default function StellarStriker({ studySet, onComplete }) {
+  const [score, setScore] = useState(0)
+  const [gameOver, setGameOver] = useState(false)
+  
+  const questions = useMemo(() => studySet.quizQuestions.filter(q => q.type === 'mcq'), [studySet])
+  const [activeQ, setActiveQ] = useState(questions[0])
+
+  const onExplode = (success) => {
+    if (success) {
+      setScore(s => s + 150)
+      setActiveQ(questions[Math.floor(Math.random() * questions.length)])
+    } else {
+      setGameOver(true)
+    }
+  }
+
+  if (gameOver) {
+     return (
+       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#050816', color: 'white' }}>
+         <h1>SYSTEM COMPROMISED</h1>
+         <p>Accuracy dropped below critical threshold.</p>
+         <button className="btn primary" onClick={() => onComplete(score)}>Claim {Math.round(score * 0.1)} XP</button>
+       </div>
+     )
+  }
+
+  return (
+    <div style={{ height: '100%', background: '#000' }}>
+      <Canvas>
+        <PerspectiveCamera makeDefault position={[0, 0, 10]} />
+        <Stars count={2000} />
+        <pointLight position={[10, 10, 10]} intensity={2} />
+        <Ship />
+        
+        {activeQ && (
+          <group>
+             <Text position={[0, 4, 0]} fontSize={0.5} color="white">{activeQ.question}</Text>
+             {activeQ.options.map((opt, i) => (
+               <Asteroid 
+                 key={i + opt} 
+                 position={[(i - 1.5) * 4, (i % 2) * 2 - 1, -20 - (i * 5)]} 
+                 text={opt} 
+                 isTarget={opt === activeQ.correct}
+                 onExplode={onExplode}
+               />
+             ))}
+          </group>
+        )}
+      </Canvas>
+      <div style={{ position: 'absolute', top: 40, right: 40, color: 'white', fontFamily: 'monospace', fontSize: '1.5rem' }}>SCORE: {score}</div>
+    </div>
+  )
+}
