@@ -22,9 +22,9 @@ function FloatingTile({ text, id, isDefinition, onSelect, activeId, matchedIds }
       <mesh ref={ref} onClick={() => onSelect(id, isDefinition)}>
         <boxGeometry args={[2.5, 1.2, 0.2]} />
         <meshStandardMaterial 
-          color={isActive ? "#6366f1" : "#ffffff"} 
+          color={isMatched ? "#10b981" : isActive ? "#6366f1" : "#ffffff"} 
           transparent 
-          opacity={0.15} 
+          opacity={isMatched ? 0.3 : 0.15} 
           metalness={1}
           roughness={0}
         />
@@ -36,34 +36,42 @@ function FloatingTile({ text, id, isDefinition, onSelect, activeId, matchedIds }
   )
 }
 
-export default function GravityMatch({ studySet, lowGraphics, reduceMotion, onComplete }) {
+export default function GravityMatch({ studySet, lowGraphics, reduceMotion, onComplete, level }) {
   const [score, setScore] = useState(0)
+  const [gameOver, setGameOver] = useState(false)
+  const [win, setWin] = useState(false)
   const [activeTerm, setActiveTerm] = useState(null)
   const [activeDef, setActiveDef] = useState(null)
   const [matchedIds, setMatchedIds] = useState(new Set())
   
   const tiles = useMemo(() => {
-    const cards = studySet.flashcards.slice(0, 8)
+    const cardLimit = 4 + (level?.difficulty || 1) * 2
+    const cards = studySet.flashcards.slice(0, Math.min(studySet.flashcards.length, cardLimit))
     const all = []
     cards.forEach(c => {
       all.push({ id: c.id, text: c.front, isDef: false, pos: [Math.random()*10-5, Math.random()*6-3, Math.random()*4-2] })
       all.push({ id: c.id, text: c.back, isDef: true, pos: [Math.random()*10-5, Math.random()*6-3, Math.random()*4-2] })
     })
     return all.sort(() => Math.random() - 0.5)
-  }, [studySet])
+  }, [studySet, level])
 
   useEffect(() => {
     if (activeTerm && activeDef) {
-       if (activeTerm === activeDef) {
+       const isCorrect = activeTerm === activeDef
+       if (isCorrect) {
           setMatchedIds(prev => new Set([...prev, activeTerm]))
-          setScore(s => s + 200)
+          const newScore = score + 100
+          setScore(newScore)
+          if (newScore >= 1000) {
+            setWin(true)
+          }
        }
        setTimeout(() => {
          setActiveTerm(null)
          setActiveDef(null)
        }, 500)
     }
-  }, [activeTerm, activeDef])
+  }, [activeTerm, activeDef, score])
 
   useEffect(() => {
     if (matchedIds.size === tiles.length / 2 && tiles.length > 0) {
@@ -89,9 +97,9 @@ export default function GravityMatch({ studySet, lowGraphics, reduceMotion, onCo
           </group>
         ))}
       </Canvas>
-      <div style={{ position: 'absolute', top: 40, left: 40, color: 'white' }}>
-         <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>DIMENSION: GRAVITY MATCH</div>
-         <div style={{ fontSize: '2rem', fontWeight: 900 }}>MATCHED: {matchedIds.size} / {tiles.length / 2}</div>
+      <div style={{ position: 'absolute', bottom: 40, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+         <div style={{ fontSize: '2rem', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--accent)' }}>{score}</div>
+         <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '2px' }}>{level?.name || 'Vantage Sync'}</div>
       </div>
     </div>
   )

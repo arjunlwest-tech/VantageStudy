@@ -3,7 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Text, Float, Stars, MeshTransmissionMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 
-function Pillar({ position, text, isCorrect, onLeap }) {
+function Pillar({ position, text, isCorrect, onLeap, lowGraphics }) {
   const [active, setActive] = useState(false)
   
   return (
@@ -27,10 +27,13 @@ function Pillar({ position, text, isCorrect, onLeap }) {
   )
 }
 
-export default function VoidClimb({ studySet, lowGraphics, reduceMotion, onComplete }) {
+export default function VoidClimb({ studySet, lowGraphics, reduceMotion, onComplete, level }) {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const questions = useMemo(() => studySet.quizQuestions.filter(q => q.type === 'mcq'), [studySet])
+  
+  // Difficulty Scaling
+  const baseSpacing = 3 + (level?.difficulty || 1) * 0.5
   const [activeQIdx, setActiveQIdx] = useState(0)
   const activeQ = questions[activeQIdx]
 
@@ -67,13 +70,14 @@ export default function VoidClimb({ studySet, lowGraphics, reduceMotion, onCompl
         <group position={[0, 0, -5]}>
           <Text position={[0, 4, -2]} fontSize={0.6} color="white" maxWidth={10}>{activeQ.question}</Text>
           {activeQ.options.map((opt, i) => (
-             <Pillar 
-               key={i + opt} 
-               position={[(i - 1.5) * 3, 0, 0]} 
-               text={opt} 
-               isCorrect={opt === activeQ.correct} 
-               onLeap={handleLeap}
-             />
+              <Pillar 
+                key={i + opt} 
+                position={[(i - 1.5) * baseSpacing, 0, 0]} 
+                text={opt} 
+                isCorrect={opt === activeQ.correct} 
+                onLeap={handleLeap}
+                lowGraphics={lowGraphics}
+              />
           ))}
         </group>
 
