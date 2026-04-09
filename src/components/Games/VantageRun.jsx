@@ -76,17 +76,22 @@ export default function VantageRun({ studySet, lowGraphics, reduceMotion, onComp
     }
   }, [activeQuestion, questions])
 
-  const handlePortal = (isCorrect) => {
-    if (isCorrect) {
-      const newScore = score + 100
-      setScore(newScore)
-      setSpeed(s => Math.min(s + 0.5 + (level?.difficulty || 1) * 0.2, 25))
-      if (newScore >= 1000) {
-        setWin(true)
+  const handlePortal = (isCorrect, action = 'hit') => {
+    if (action === 'hit') {
+      if (isCorrect) {
+        const newScore = score + 100
+        setScore(newScore)
+        setSpeed(s => Math.min(s + 0.3 + (level?.difficulty || 1) * 0.15, 22))
+        if (newScore >= 1000) {
+          setWin(true)
+        } else {
+          setActiveQuestion(null)
+        }
       } else {
-        setActiveQuestion(null)
+        setGameOver(true)
       }
-    } else {
+    } else if (action === 'miss' && isCorrect) {
+      // If we missed the correct one, it's game over
       setGameOver(true)
     }
   }
@@ -143,14 +148,14 @@ export default function VantageRun({ studySet, lowGraphics, reduceMotion, onComp
               const isCorrect = opt === activeQuestion.correct
               return (
                 <MovingGate 
-                  key={idx} 
-                  position={[xPos, 0, -20]} 
+                  key={idx + opt} 
+                  position={[xPos, 0, -30]} 
                   speed={speed} 
                   text={opt} 
                   isCorrect={isCorrect} 
                   targetLane={lane}
                   lowGraphics={lowGraphics}
-                  onHit={() => handlePortal(isCorrect)} 
+                  onAction={(action) => handlePortal(isCorrect, action)} 
                 />
               )
             })}
@@ -165,27 +170,27 @@ export default function VantageRun({ studySet, lowGraphics, reduceMotion, onComp
   )
 }
 
-function MovingGate({ position, speed, text, isCorrect, targetLane, onHit, lowGraphics }) {
+function MovingGate({ position, speed, text, isCorrect, targetLane, onAction, lowGraphics }) {
   const ref = useRef()
-  const [hit, setHit] = useState(false)
+  const [processed, setProcessed] = useState(false)
 
   useFrame((state, delta) => {
-    if (ref.current && !hit) {
+    if (ref.current && !processed) {
       ref.current.position.z += speed * delta
       
-      // Collision detection
-      if (ref.current.position.z > -1.5 && ref.current.position.z < 0.5) {
+      // Collision detection window
+      if (ref.current.position.z > -1 && ref.current.position.z < 1) {
          const currentLane = Math.round(ref.current.position.x / 3)
          if (currentLane === targetLane) {
-            setHit(true)
-            onHit()
+            setProcessed(true)
+            onAction('hit')
          }
       }
 
-      // Cleanup
+      // Miss logic
       if (ref.current.position.z > 5) {
-         // Missed portal or passed through wrong one logic handled by game over if not hitting correct
-         // But here we just hide it
+         setProcessed(true)
+         onAction('miss')
       }
     }
   })

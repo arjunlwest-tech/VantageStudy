@@ -1584,12 +1584,13 @@ function GamesView({ state, setState, save, addXP, setIsGameActive, lowGraphics,
     { id: 'shooter', name: 'Stellar Striker', icon: '🚀', color: 'var(--emerald)', desc: 'Space combat. Blast asteroids with the correct answer.' },
     { id: 'match', name: 'Gravity Match', icon: '🧩', color: 'var(--rose)', desc: '3D Physics match. Drop blocks into the right containers.' },
     { id: 'tower', name: 'Void Climb', icon: '🏙️', color: 'var(--amber)', desc: '3D Platformer. Jump across answer pillars in the void.' },
+    { id: 'sort', name: 'Nebula Sort', icon: '⚛️', color: 'var(--cyan)', desc: 'Conceptual sorting. Drag terms into the correct gravitational wells.' },
   ]
 
-  // Create 20 unique levels (5 per archetype)
-  const LEVELS = Array.from({ length: 20 }, (_, i) => {
-    const archIdx = Math.floor(i / 5)
-    const subIdx = (i % 5) + 1
+  // Create 50 unique levels (10 per archetype)
+  const LEVELS = Array.from({ length: 50 }, (_, i) => {
+    const archIdx = Math.floor(i / 10)
+    const subIdx = (i % 10) + 1
     const arch = ARCHETYPES[archIdx]
     return {
       id: `game_${i}`,
@@ -1598,7 +1599,7 @@ function GamesView({ state, setState, save, addXP, setIsGameActive, lowGraphics,
       difficulty: subIdx,
       icon: arch.icon,
       color: arch.color,
-      multiplier: 1 + (subIdx * 0.2)
+      multiplier: 1 + (subIdx * 0.15)
     }
   })
 
@@ -1668,6 +1669,7 @@ const VantageRun = lazy(() => import('./components/Games/VantageRun'))
 const StellarStriker = lazy(() => import('./components/Games/StellarStriker'))
 const GravityMatch = lazy(() => import('./components/Games/GravityMatch'))
 const VoidClimb = lazy(() => import('./components/Games/VoidClimb'))
+const NebulaSort = lazy(() => import('./components/Games/NebulaSort'))
 
 function GameEngine({ level, studySet, lowGraphics, reduceMotion, onComplete }) {
   const arch = level.archetypeId
@@ -1676,5 +1678,6 @@ function GameEngine({ level, studySet, lowGraphics, reduceMotion, onComplete }) 
   if (arch === 'shooter') return <StellarStriker {...props} />
   if (arch === 'match') return <GravityMatch {...props} />
   if (arch === 'tower') return <VoidClimb {...props} />
+  if (arch === 'sort') return <NebulaSort {...props} />
   return <div style={{ color: 'white' }}>Unknown Game Dimension</div>
 }

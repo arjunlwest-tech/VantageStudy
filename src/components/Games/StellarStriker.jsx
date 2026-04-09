@@ -19,7 +19,6 @@ function Laser({ position }) {
 function Asteroid({ position, text, isTarget, onExplode, speed }) {
   const ref = useRef()
   const [exploded, setExploded] = useState(false)
-  const [lasers, setLasers] = useState([])
   
   useFrame((state, delta) => {
     if (ref.current && !exploded) {
@@ -29,7 +28,7 @@ function Asteroid({ position, text, isTarget, onExplode, speed }) {
       
       if (ref.current.position.z > 5) {
          setExploded(true)
-         onExplode(false) // Count as miss
+         if (isTarget) onExplode(false)
       }
     }
   })
